@@ -1,14 +1,27 @@
-import os
 import subprocess
 import importlib.util
-import threading
-import requests
+print("INSTALLING DEPENDENCY PLS BE PATIENT...")
+lxml = importlib.util.find_spec("lxml")
+if lxml == None:
+    print("Installing lxml library")
+    subprocess.run(["pip", "install", "lxml"], capture_output=True)
+bs4 = importlib.util.find_spec("bs4")
+if bs4 == None:
+    print("Installing Bs4 library")
+    subprocess.run(["pip", "install", "bs4"], capture_output=True)
+request = importlib.util.find_spec("requests")
+if request == None:
+    print("Installing requests library")
+    subprocess.run(["pip", "install", "requests"], capture_output=True)
+print("ALL library's are installed")
 from bs4 import BeautifulSoup
+import requests
+import os
+import threading
 import random
 import urllib.request
 import time
-import sys
-print(sys.stdout.encoding)
+
 agent = []
 proxies = []
 working = []
@@ -20,22 +33,6 @@ os.system("cls")
 keyword_file = input("Keywords (keyword.txt): ")
 Np = input("Use new proxies: ")
 
-def installDep():
-
-	print("INSTALLING DEPENDENCY PLS BE PATIENT...")
-	lxml = importlib.util.find_spec("lxml")
-	if lxml == None:
-		print("Installing lxml library")
-		subprocess.run(["pip", "install", "lxml"], capture_output=True)
-	bs4 = importlib.util.find_spec("bs4")
-	if bs4 == None:
-		print("Installing Bs4 library")
-		subprocess.run(["pip", "install", "bs4"], capture_output=True)
-	request = importlib.util.find_spec("requests")
-	if request == None:
-		print("Installing requests library")
-		subprocess.run(["pip", "install", "requests"], capture_output=True)
-	print("ALL library's are installed")
 
 def ckr():
     task = []
