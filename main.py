@@ -1,5 +1,6 @@
 import subprocess
 import importlib.util
+import concurrent.futures
 print("INSTALLING DEPENDENCY PLS BE PATIENT...")
 lxml = importlib.util.find_spec("lxml")
 if lxml == None:
@@ -13,10 +14,13 @@ request = importlib.util.find_spec("requests")
 if request == None:
     print("Installing requests library")
     subprocess.run(["pip", "install", "requests"], capture_output=True)
+request = importlib.util.find_spec("requests")
+if request == None:
+    print("Installing numpy library")
+    subprocess.run(["pip", "install", "numpy"], capture_output=True)
 print("ALL library's are installed")
 
 import json
-from requests_html import HTMLSession
 from bs4 import BeautifulSoup
 import requests
 import os
@@ -24,6 +28,7 @@ import threading
 import random
 import urllib.request
 import time
+import numpy
 
 agent = []
 proxies = []
@@ -31,6 +36,7 @@ working = []
 keywords = []
 combos = []
 links = []
+email = [".com:", ".org:", ".fr:", ".ru:", ".net:", ".de:", ".pl:", ".it:", ".jp:"]
 github = ["https://raw.githubusercontent.com/mmpx12/proxy-list/master/https.txt", "https://raw.githubusercontent.com/RX4096/proxy-list/main/online/https.txt", "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies_anonymous/http.txt", "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt", "https://raw.githubusercontent.com/RX4096/proxy-list/main/online/https.txt"]
 os.system("clear")
 
@@ -39,9 +45,6 @@ Np = input("Use new proxies: ")
 
 
 def ckr():
-    task = []
-    for i in range(len(proxies)):
-        task.append(threading.Thread(target=scan, args=[i]))
     print("""
 ██████╗░██████╗░░█████╗░██╗░░██╗██╗███████╗░██████╗
 ██╔══██╗██╔══██╗██╔══██╗╚██╗██╔╝██║██╔════╝██╔════╝
@@ -57,20 +60,17 @@ def ckr():
 ██████╔╝╚█████╔╝██║░░██║██║░░██║██║░░░░░███████╗
 ╚═════╝░░╚════╝░╚═╝░░╚═╝╚═╝░░╚═╝╚═╝░░░░░╚══════╝
 """)
-    num = int(input("How many threads: "))
-    u = 0
     print(f"proxies len: {len(proxies)}")
-    for i in range(len(task)):
-        if i < num + i:
-            task[i].start()
-        if i == u + num:
-            u += num
-            time.sleep(1)
+    num = int(input("How many threads: "))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=num) as executor:
+        # Submit the worker function to the thread pool
+        for n in range(len(proxies)):
+            executor.submit(scan, n)
 
 
 def scan(num):
     if not is_bad_proxy(proxies[num]):
-        print(f"{proxies[num]} is online ✅")
+        print(f"{proxies[num]} is online ✅ {num}/{len(proxies)}")
         file = open("proxies.txt", "a")
         file.write(f"{proxies[num]}\n")
         file.close()
@@ -95,30 +95,15 @@ def start(engine):
     threadS = []
     num = int(input("How many threads for scraping: "))
     u = 0
+    p = 0
     if engine.lower() == "duckduckgo":
-        for keyword in keywords:
-            try:
-                if pause == True:
-                    print("Operation Paused\nType 's' to stop\nPress 'ENTER' to continue\n")
-                    d = input("")
-                    if d.lower() == "s":
-                        print("Checking Links")
-                        break
-                    pause = False
-                threadS.append(threading.Thread(target=duckduckgoScrape, args=(keyword,)))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            # Submit the worker function to the thread pool
+            for keyword in keywords:
+                executor.submit(duckduckgoScrape, keyword)
 
-                #duckduckgoScrape(keyword)
-            except KeyboardInterrupt:
-                pause = True
-
-        for i in range(len(threadS)):
-            if i < num + i:
-                threadS[i].start()
-            if i == u + num:
-                u += num
-                time.sleep(1)
-        for threads in threadS:
-            threads.join()
+    else:
+        pass
 
 def GoogleScrape():
     pause = False
@@ -208,11 +193,12 @@ def duckduckgoScrape(keyword):
     except KeyboardInterrupt:
         pause = True
     except Exception as e:
-        duckduckgoScrape(keyword)
+        pass
         #print("\n**** Proxy Failed on us\nRETRYING")
 
 
 def collect():
+    email = [".com:", ".org:", ".fr:", ".ru:", ".net:", ".de:", ".pl:", ".it:", ".jp:"]
     pause = False
     try:
         link = set(links)
@@ -226,18 +212,20 @@ def collect():
             print("\n")
             _, id = link.split("m/")
             r = requests.get(f"https://pastebin.com/raw/{id}")
-            #print(r.text)
-            for i in r.text.split("\n"):
-                for i in i.split(" "):
-                    if ":" in i:
-                        print(i)
-                        if ".com:" in i or ".net:" in i or ".org:" in i:
+            for i in r.text.splitlines():
+                i = i.strip()
+                if "@" in i and "//" not in i and ":" in i:
+                    for mail in email:
+                        if mail in i:
                             print(f"Combo found: {i}")
+                            combos.append(i)
+
+
+
 
         for combo in set(combos):
             with open("combos.txt", "a", encoding="UTF-8") as f:
                 f.write(f"{combo}\n")
-
         print(f"Total Combos Found: {len(combos)}")
     except KeyboardInterrupt:
         pause = True
@@ -276,12 +264,14 @@ if Np.lower() == "y":
         if i not in proxies:
             proxies.append(i)
     r = requests.get("http://apiproxyfree.com/proxyapi")
-    js = json.loads(r.text)
-    for i in js:
-        if f"{i['ip'].replace(' ', '')}:{i['port'].replace(' ', '')}" not in proxies:
-            proxies.append(f"{i['ip'].replace(' ', '')}:{i['port']}")
-    r = requests.get("https://us-proxy.org/")
-
+    try:
+        js = json.loads(r.text)
+        for i in js:
+            if f"{i['ip'].replace(' ', '')}:{i['port'].replace(' ', '')}" not in proxies:
+                proxies.append(f"{i['ip'].replace(' ', '')}:{i['port']}")
+        r = requests.get("https://us-proxy.org/")
+    except Exception as e:
+        pass
 
     soup = BeautifulSoup(r.content, "lxml")
 
